@@ -1,6 +1,7 @@
 :root {
     --default-color: rgb(197, 197, 197);
     --working-color: rgb(97, 197, 150);
+    --resting-color: rgb(197, 195, 97);
     --text-button-color: black;
 }
 
@@ -29,6 +30,10 @@ p{
 
 .working {
     background: var(--working-color);
+}
+
+.resting {
+    background: var(--resting-color);
 }
 
 .hidden {
@@ -71,6 +76,11 @@ p{
 
 .working .pomodoro button{
     background: var(--working-color);
+    color: var(--text-button-color);
+}
+
+.resting .pomodoro button{
+    background: var(--resting-color);
     color: var(--text-button-color);
 }
 
