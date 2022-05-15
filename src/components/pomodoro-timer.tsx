@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useInterval } from "../hooks/use-interval";
+import { formatTime } from "../utils/second-to-time";
 import { Button } from "./button";
 import { Timer } from "./timer";
 
@@ -17,35 +18,32 @@ interface Props {
 }
 
 export function PomodoroTimer(props: Props): JSX.Element {
-    const [mainTime, setMainTime] = React.useState(props.pomodoroTime);
-    const [timeCounting, setTimeCounting] = React.useState(false);
-    const [working, setWorking] = React.useState(false);
-    const [resting, setResting] = React.useState(false);
+    const [mainTime, setMainTime] = useState(props.pomodoroTime);
+    const [timeCounting, setTimeCounting] = useState(false);
+    const [working, setWorking] = useState(false);
+    const [resting, setResting] = useState(false);
+    const [cyclesCountManager, setCyclesCountManager,] = useState(
+        new Array(props.cycles).fill(true),
+    );
 
-    useEffect(() => {
-        if (working) {
-            document.body.classList.remove('resting');
-            document.body.classList.add('working');
-        }
-        if (resting) {
-            document.body.classList.remove('working');
-            document.body.classList.add('resting');
-        };
-    }, [working, resting]);
+    const [completedCycles, setCompletedCycles] = useState(0);
+    const [fullWorkingTime, setFullWorkingTime] = useState(0);
+    const [numberOfPomodoros, setNumberOfPomodoros] = useState(0);
 
     useInterval(() => {
         setMainTime(mainTime - 1);
+        if (working) setFullWorkingTime(fullWorkingTime + 1);
     }, timeCounting ? 1000 : null);
 
-    const configureWork = () => {
+    const configureWork = useCallback(() => {
         setTimeCounting(true);
         setWorking(true);
         setResting(false);
         setMainTime(props.pomodoroTime);
         audioStartWorking.play();
-    }
+    }, [setTimeCounting, setWorking, setResting, setMainTime, props.pomodoroTime]);
 
-    const configureRest = (Long: boolean) => {
+    const configureRest = useCallback((Long: boolean) => {
         setTimeCounting(true);
         setWorking(false);
         setResting(true);
@@ -57,11 +55,39 @@ export function PomodoroTimer(props: Props): JSX.Element {
         }
 
         audioFinishWorking.play();
-    }
+    }, [setTimeCounting, setWorking, setResting, setMainTime, props.longRestTime, props.shortRestTime]);
+
+    useEffect(() => {
+        if (working) {
+            document.body.classList.remove('resting');
+            document.body.classList.add('working');
+        }
+        if (resting) {
+            document.body.classList.remove('working');
+            document.body.classList.add('resting');
+        }
+
+        if (mainTime > 0) return;
+
+        if (working && cyclesCountManager.length > 0) {
+            configureRest(false);
+            cyclesCountManager.pop();
+        } else if (working && cyclesCountManager.length <= 0) {
+            configureRest(true);
+            setCyclesCountManager(new Array(props.cycles - 1).fill(true));
+            setCompletedCycles(completedCycles + 1);
+        }
+
+        if (working) setNumberOfPomodoros(numberOfPomodoros + 1);
+        if (resting) configureWork();
+
+    }, [ working, resting, mainTime, cyclesCountManager, setCyclesCountManager,
+        numberOfPomodoros, completedCycles, configureRest, configureWork, props.cycles,
+    ]);
 
     return (
         <div className="pomodoro">
-            <h2>Yeah!!!You are working!</h2>
+            <h2>Yeah!!!You are {working ? 'working': (resting ? 'resting' : 'stop')}!</h2>
             <Timer mainTime={mainTime}></Timer>
 
             <div className="controls">
@@ -74,9 +100,9 @@ export function PomodoroTimer(props: Props): JSX.Element {
             </div>
 
             <div className="details">
-                <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sed nemo, velit quo, blanditiis cupiditate rem optio voluptas neque quia minima totam placeat a quibusdam fugiat tempora obcaecati. Veritatis, at dicta.</p>
-                <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sed nemo, velit quo, blanditiis cupiditate rem optio voluptas neque quia minima totam placeat a quibusdam fugiat tempora obcaecati. Veritatis, at dicta.</p>
-                <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sed nemo, velit quo, blanditiis cupiditate rem optio voluptas neque quia minima totam placeat a quibusdam fugiat tempora obcaecati. Veritatis, at dicta.</p>
+                <p>Completed cycles: {completedCycles}</p>
+                <p>Work time: {formatTime(fullWorkingTime)}</p>
+                <p>Completed pomodoros: {numberOfPomodoros}</p>
             </div>
         </div>
     );
