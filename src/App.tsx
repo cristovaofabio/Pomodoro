@@ -1,6 +1,8 @@
 import React from 'react';
 import { PomodoroTimer } from './components/pomodoro-timer';
 
+export const Person = ({ name }: { name: string }) => <div>Name is {name}</div>
+
 function App() {
     return (
         <div className="container">
